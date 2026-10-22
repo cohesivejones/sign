@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
+import { newId } from '../lib/id';
 import { trimCanvas } from '../lib/trimCanvas';
 import type { Signature } from '../types';
 
@@ -85,7 +86,7 @@ export function SignatureDialog({ open, onSave, onClose }: Props) {
   function save() {
     const trimmed = trimCanvas(canvasRef.current!);
     onSave({
-      id: crypto.randomUUID(),
+      id: newId(),
       dataUrl: trimmed.toDataURL('image/png'),
       aspect: trimmed.height / trimmed.width,
     });

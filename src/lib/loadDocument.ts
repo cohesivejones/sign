@@ -1,5 +1,6 @@
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import { newId } from './id';
 import type { DocPage } from '../types';
 
 GlobalWorkerOptions.workerSrc = workerUrl;
@@ -29,7 +30,7 @@ async function loadPdf(file: File): Promise<DocPage[]> {
         canvas.toBlob(b => (b ? resolve(b) : reject(new Error('Could not render page.'))), 'image/png'),
       );
       pages.push({
-        id: crypto.randomUUID(),
+        id: newId(),
         src: URL.createObjectURL(blob),
         width: viewport.width / RENDER_SCALE,
         height: viewport.height / RENDER_SCALE,
@@ -46,7 +47,7 @@ function loadImage(file: File): Promise<DocPage> {
     const src = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () =>
-      resolve({ id: crypto.randomUUID(), src, width: img.naturalWidth, height: img.naturalHeight });
+      resolve({ id: newId(), src, width: img.naturalWidth, height: img.naturalHeight });
     img.onerror = () => {
       URL.revokeObjectURL(src);
       reject(new Error('Could not read that image.'));

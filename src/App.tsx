@@ -4,6 +4,7 @@ import { DocumentPage } from './components/DocumentPage';
 import { SignatureDialog } from './components/SignatureDialog';
 import { SignatureTray } from './components/SignatureTray';
 import { clamp } from './lib/clamp';
+import { newId } from './lib/id';
 import { loadDocument } from './lib/loadDocument';
 import type { DocPage, Placement, Signature } from './types';
 
@@ -84,7 +85,7 @@ export default function App() {
     const width = Math.min(DEFAULT_WIDTH, 1 / (signature.aspect * ratio));
     const height = width * signature.aspect * ratio;
     const placement: Placement = {
-      id: crypto.randomUUID(),
+      id: newId(),
       pageId: page.id,
       signature,
       x: clamp(cx - width / 2, 0, 1 - width),
