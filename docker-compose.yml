@@ -1,0 +1,8 @@
+services:
+  sign:
+    image: drnatejones/sign:latest
+    container_name: sign
+    restart: unless-stopped
+    # Host port 8090; NAS admin UIs often already use 5000/5001/8080.
+    ports:
+      - "8090:80"

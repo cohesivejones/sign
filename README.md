@@ -24,6 +24,13 @@ hosts that set `PORT`):
 docker run -p 3000:3000 -e PORT=3000 drnatejones/sign
 ```
 
+### NAS / Docker Compose
+
+Copy [docker-compose.yml](docker-compose.yml) into your NAS's container app
+(Synology Container Manager → Project, QNAP Container Station → Applications,
+Portainer → Stacks, TrueNAS → Custom App) and open `http://<nas-ip>:8090`.
+Change the left side of `8090:80` if that port is taken.
+
 ## Releasing
 
 Push a `vX.Y.Z` tag. The release workflow publishes `drnatejones/sign` to
