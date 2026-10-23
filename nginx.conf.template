@@ -1,5 +1,8 @@
+# Rendered by the nginx image's entrypoint (envsubst) with ${PORT}.
+# Plain HTTP only: no TLS, no HTTPS redirect, no HSTS.
 server {
-    listen 80;
+    listen ${PORT};
+    listen [::]:${PORT};
     root /usr/share/nginx/html;
     index index.html;
 
