@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import type { PointerEvent } from 'react';
 import { clamp } from '../lib/clamp';
+import { usePreventTouchScroll } from '../lib/usePreventTouchScroll';
 import type { Placement } from '../types';
 
 interface Props {
@@ -22,11 +23,14 @@ interface DragState {
   start: Placement;
 }
 
-const MIN_WIDTH_PX = 30;
+// Keeps the delete button (top-left) and resize handle (bottom-right) apart.
+const MIN_WIDTH_PX = 40;
 
 export function PlacedSignature({ placement, pageRatio, selected, onSelect, onChange, onDelete }: Props) {
+  const ref = useRef<HTMLDivElement>(null);
   const drag = useRef<DragState | null>(null);
   const { x, y, width, signature } = placement;
+  usePreventTouchScroll(ref);
 
   function beginDrag(e: PointerEvent<HTMLElement>, mode: DragState['mode']) {
     e.preventDefault();
@@ -70,6 +74,7 @@ export function PlacedSignature({ placement, pageRatio, selected, onSelect, onCh
 
   return (
     <div
+      ref={ref}
       className={`placed${selected ? ' active' : ''}`}
       style={{ left: `${x * 100}%`, top: `${y * 100}%`, width: `${width * 100}%` }}
       onPointerDown={e => beginDrag(e, 'move')}

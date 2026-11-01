@@ -12,6 +12,7 @@ body {
   grid-template-columns: 220px 1fr;
   grid-template-rows: auto 1fr;
   height: 100vh;
+  height: 100dvh;
 }
 
 h1 { font-size: 1.2rem; margin: 0 1rem 0 0; }
@@ -60,6 +61,10 @@ h2 { font-size: 1rem; margin: 0 0 .5rem; }
   padding: .4rem;
   background: #fff;
   cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 .sig-item img { display: block; max-width: 100%; max-height: 70px; margin: auto; pointer-events: none; }
 .sig-item .remove {
@@ -84,7 +89,16 @@ h2 { font-size: 1rem; margin: 0 0 .5rem; }
   text-align: center;
   color: #555;
 }
-.empty.over, .page.over { outline: 3px solid #1a5fd0; }
+.empty.over { outline: 3px solid #1a5fd0; }
+
+.drag-ghost {
+  position: fixed;
+  width: 160px;
+  transform: translate(-50%, -50%);
+  opacity: .7;
+  pointer-events: none;
+  z-index: 10;
+}
 
 .page {
   position: relative;
@@ -99,6 +113,9 @@ h2 { font-size: 1rem; margin: 0 0 .5rem; }
   position: absolute;
   cursor: move;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   outline: 1px dashed transparent;
 }
 .placed:hover, .placed.active { outline-color: #1a5fd0; }
@@ -111,7 +128,7 @@ h2 { font-size: 1rem; margin: 0 0 .5rem; }
   display: none;
 }
 .placed .delete {
-  position: absolute; top: -10px; right: -10px;
+  position: absolute; top: -10px; left: -10px;
   width: 20px; height: 20px;
   border: none; border-radius: 50%;
   background: #d33; color: #fff; font-size: 12px; line-height: 20px;
@@ -120,6 +137,37 @@ h2 { font-size: 1rem; margin: 0 0 .5rem; }
 }
 .placed:hover .handle, .placed.active .handle,
 .placed:hover .delete, .placed.active .delete { display: block; }
+
+/* Finger-sized controls on touch screens. */
+@media (pointer: coarse) {
+  .placed .handle { width: 28px; height: 28px; right: -14px; bottom: -14px; border-radius: 50%; }
+  .placed .delete { width: 28px; height: 28px; top: -14px; left: -14px; font-size: 16px; line-height: 28px; }
+  .sig-item .remove { font-size: 1.4rem; padding: 0 .3rem; }
+}
+
+/* Phones: signatures become a strip under the toolbar. */
+@media (max-width: 700px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr;
+  }
+  .toolbar { flex-wrap: wrap; padding: .5rem .75rem; }
+  .status { flex-basis: 100%; margin-left: 0; }
+  .tray {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem .75rem;
+    border-right: none;
+    border-bottom: 1px solid #ccc;
+    overflow: visible;
+  }
+  .tray h2, .tray .hint { display: none; }
+  .sig-list { flex-direction: row; overflow-x: auto; }
+  .sig-item { flex: 0 0 120px; }
+  .sig-item img { max-height: 44px; }
+  .viewer { padding: .75rem; }
+}
 
 dialog { border: none; border-radius: 10px; padding: 0; box-shadow: 0 10px 40px rgba(0, 0, 0, .3); }
 .sig-dialog { padding: 1.2rem; }

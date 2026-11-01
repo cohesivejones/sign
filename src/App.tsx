@@ -96,6 +96,40 @@ export default function App() {
     setSelectedId(placement.id);
   }
 
+  /** Place a signature where it was dropped, if that point is over a page. */
+  function dropSignature(signature: Signature, clientX: number, clientY: number) {
+    const el = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>('[data-page-id]');
+    const page = el && pages.find(p => p.id === el.dataset.pageId);
+    if (!el || !page) return;
+    const r = el.getBoundingClientRect();
+    placeSignature(page, signature, (clientX - r.left) / r.width, (clientY - r.top) / r.height);
+  }
+
+  /** Place a signature in the middle of the visible part of the most visible page. */
+  function placeInView(signature: Signature) {
+    const viewer = document.querySelector('.viewer')!.getBoundingClientRect();
+    let best: { page: DocPage; cx: number; cy: number; area: number } | null = null;
+    for (const el of document.querySelectorAll<HTMLElement>('[data-page-id]')) {
+      const page = pages.find(p => p.id === el.dataset.pageId);
+      if (!page) continue;
+      const r = el.getBoundingClientRect();
+      const left = Math.max(r.left, viewer.left);
+      const right = Math.min(r.right, viewer.right);
+      const top = Math.max(r.top, viewer.top);
+      const bottom = Math.min(r.bottom, viewer.bottom);
+      const area = Math.max(0, right - left) * Math.max(0, bottom - top);
+      if (!best || area > best.area) {
+        best = {
+          page,
+          cx: ((left + right) / 2 - r.left) / r.width,
+          cy: ((top + bottom) / 2 - r.top) / r.height,
+          area,
+        };
+      }
+    }
+    if (best) placeSignature(best.page, signature, best.cx, best.cy);
+  }
+
   function updatePlacement(id: string, changes: Partial<Placement>) {
     setPlacements(ps => ps.map(p => (p.id === id ? { ...p, ...changes } : p)));
   }
@@ -124,7 +158,8 @@ export default function App() {
 
       <SignatureTray
         signatures={signatures}
-        onPick={sig => pages[0] && placeSignature(pages[0], sig, 0.5, 0.5)}
+        onDrop={dropSignature}
+        onTap={placeInView}
         onRemove={id => setSignatures(s => s.filter(sig => sig.id !== id))}
       />
 
@@ -147,10 +182,6 @@ export default function App() {
               index={i}
               placements={placements.filter(p => p.pageId === page.id)}
               selectedId={selectedId}
-              onDropSignature={(sigId, x, y) => {
-                const sig = signatures.find(s => s.id === sigId);
-                if (sig) placeSignature(page, sig, x, y);
-              }}
               onSelect={setSelectedId}
               onChange={updatePlacement}
               onDelete={id => setPlacements(ps => ps.filter(p => p.id !== id))}
