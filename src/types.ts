@@ -2,23 +2,25 @@ export interface DocPage {
   id: string;
   /** Object URL of the rendered page image. */
   src: string;
-  /** Natural size in CSS pixels. */
+  /** Natural size in CSS pixels (PDF points for PDF pages). */
   width: number;
   height: number;
 }
 
-export interface Signature {
+/** Something that can be placed on a page: a drawn signature or a date. */
+export interface Stamp {
   id: string;
+  kind: 'signature' | 'date';
   dataUrl: string;
   /** Height divided by width. */
   aspect: number;
 }
 
-/** A signature placed on a page. Position and width are fractions of the page size. */
+/** A stamp placed on a page. Position and width are fractions of the page size. */
 export interface Placement {
   id: string;
   pageId: string;
-  signature: Signature;
+  stamp: Stamp;
   x: number;
   y: number;
   width: number;

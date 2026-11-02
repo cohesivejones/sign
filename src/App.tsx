@@ -4,20 +4,25 @@ import { DocumentPage } from './components/DocumentPage';
 import { SignatureDialog } from './components/SignatureDialog';
 import { SignatureTray } from './components/SignatureTray';
 import { clamp } from './lib/clamp';
+import { exportPdf } from './lib/exportPdf';
 import { newId } from './lib/id';
 import { loadDocument } from './lib/loadDocument';
-import type { DocPage, Placement, Signature } from './types';
+import { renderDateStamp } from './lib/stamps';
+import type { DocPage, Placement, Stamp } from './types';
 
-// New signatures take up this fraction of the page width.
-const DEFAULT_WIDTH = 0.25;
+// New stamps take up this fraction of the page width.
+const DEFAULT_WIDTH: Record<Stamp['kind'], number> = { signature: 0.25, date: 0.2 };
 
 export default function App() {
+  const [file, setFile] = useState<File | null>(null);
   const [pages, setPages] = useState<DocPage[]>([]);
-  const [signatures, setSignatures] = useState<Signature[]>([]);
+  const [signatures, setSignatures] = useState<Stamp[]>([]);
+  const [dateStamp] = useState(() => renderDateStamp());
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [status, setStatus] = useState('');
+  const [busy, setBusy] = useState(false);
   const [fileOver, setFileOver] = useState(false);
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
@@ -44,24 +49,47 @@ export default function App() {
     };
   }, [dialogOpen, selectedId]);
 
-  async function openFile(file: File) {
-    setStatus(`Loading ${file.name}…`);
+  async function openFile(next: File) {
+    setStatus(`Loading ${next.name}…`);
     try {
-      const loaded = await loadDocument(file);
+      const loaded = await loadDocument(next);
       pages.forEach(p => URL.revokeObjectURL(p.src));
+      setFile(next);
       setPages(loaded);
       setPlacements([]);
       setSelectedId(null);
-      setStatus(file.name);
+      setStatus(next.name);
     } catch (err) {
       console.error(err);
       setStatus(err instanceof Error ? err.message : 'Could not open that file.');
     }
   }
 
+  async function savePdf() {
+    if (!file) return;
+    setBusy(true);
+    setStatus('Creating PDF…');
+    try {
+      const bytes = await exportPdf(file, pages, placements);
+      const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${file.name.replace(/\.[^.]+$/, '')}-signed.pdf`;
+      a.click();
+      // Give the browser time to start the download before freeing it.
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      setStatus(file.name);
+    } catch (err) {
+      console.error(err);
+      setStatus('Could not create the PDF.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function handleFileInput(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) openFile(file);
+    const next = e.target.files?.[0];
+    if (next) openFile(next);
     e.target.value = '';
   }
 
@@ -73,21 +101,21 @@ export default function App() {
 
   function handleFileDrop(e: DragEvent) {
     setFileOver(false);
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
+    const next = e.dataTransfer.files[0];
+    if (!next) return;
     e.preventDefault();
-    openFile(file);
+    openFile(next);
   }
 
-  /** Place a signature centred on (cx, cy), given as fractions of the page. */
-  function placeSignature(page: DocPage, signature: Signature, cx: number, cy: number) {
+  /** Place a stamp centred on (cx, cy), given as fractions of the page. */
+  function placeStamp(page: DocPage, stamp: Stamp, cx: number, cy: number) {
     const ratio = page.width / page.height;
-    const width = Math.min(DEFAULT_WIDTH, 1 / (signature.aspect * ratio));
-    const height = width * signature.aspect * ratio;
+    const width = Math.min(DEFAULT_WIDTH[stamp.kind], 1 / (stamp.aspect * ratio));
+    const height = width * stamp.aspect * ratio;
     const placement: Placement = {
       id: newId(),
       pageId: page.id,
-      signature,
+      stamp,
       x: clamp(cx - width / 2, 0, 1 - width),
       y: clamp(cy - height / 2, 0, 1 - height),
       width,
@@ -96,17 +124,17 @@ export default function App() {
     setSelectedId(placement.id);
   }
 
-  /** Place a signature where it was dropped, if that point is over a page. */
-  function dropSignature(signature: Signature, clientX: number, clientY: number) {
+  /** Place a stamp where it was dropped, if that point is over a page. */
+  function dropStamp(stamp: Stamp, clientX: number, clientY: number) {
     const el = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>('[data-page-id]');
     const page = el && pages.find(p => p.id === el.dataset.pageId);
     if (!el || !page) return;
     const r = el.getBoundingClientRect();
-    placeSignature(page, signature, (clientX - r.left) / r.width, (clientY - r.top) / r.height);
+    placeStamp(page, stamp, (clientX - r.left) / r.width, (clientY - r.top) / r.height);
   }
 
-  /** Place a signature in the middle of the visible part of the most visible page. */
-  function placeInView(signature: Signature) {
+  /** Place a stamp in the middle of the visible part of the most visible page. */
+  function placeInView(stamp: Stamp) {
     const viewer = document.querySelector('.viewer')!.getBoundingClientRect();
     let best: { page: DocPage; cx: number; cy: number; area: number } | null = null;
     for (const el of document.querySelectorAll<HTMLElement>('[data-page-id]')) {
@@ -127,7 +155,7 @@ export default function App() {
         };
       }
     }
-    if (best) placeSignature(best.page, signature, best.cx, best.cy);
+    if (best) placeStamp(best.page, stamp, best.cx, best.cy);
   }
 
   function updatePlacement(id: string, changes: Partial<Placement>) {
@@ -153,12 +181,15 @@ export default function App() {
         <button type="button" className="btn primary" disabled={!pages.length} onClick={() => window.print()}>
           Print
         </button>
+        <button type="button" className="btn primary" disabled={!pages.length || busy} onClick={savePdf}>
+          Save PDF
+        </button>
         <span className="status">{status}</span>
       </header>
 
       <SignatureTray
-        signatures={signatures}
-        onDrop={dropSignature}
+        stamps={[dateStamp, ...signatures]}
+        onDrop={dropStamp}
         onTap={placeInView}
         onRemove={id => setSignatures(s => s.filter(sig => sig.id !== id))}
       />

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
 import { newId } from '../lib/id';
+import { DEFAULT_INK } from '../lib/stamps';
 import { trimCanvas } from '../lib/trimCanvas';
-import type { Signature } from '../types';
+import type { Stamp } from '../types';
 
 interface Props {
   open: boolean;
-  onSave: (signature: Signature) => void;
+  onSave: (stamp: Stamp) => void;
   onClose: () => void;
 }
 
@@ -19,7 +20,7 @@ export function SignatureDialog({ open, onSave, onClose }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const last = useRef<{ point: Point; mid: Point } | null>(null);
-  const [color, setColor] = useState('#1a2a6c');
+  const [color, setColor] = useState(DEFAULT_INK);
   const [hasInk, setHasInk] = useState(false);
 
   useEffect(() => {
@@ -87,6 +88,7 @@ export function SignatureDialog({ open, onSave, onClose }: Props) {
     const trimmed = trimCanvas(canvasRef.current!);
     onSave({
       id: newId(),
+      kind: 'signature',
       dataUrl: trimmed.toDataURL('image/png'),
       aspect: trimmed.height / trimmed.width,
     });

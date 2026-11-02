@@ -29,7 +29,7 @@ const MIN_WIDTH_PX = 40;
 export function PlacedSignature({ placement, pageRatio, selected, onSelect, onChange, onDelete }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const drag = useRef<DragState | null>(null);
-  const { x, y, width, signature } = placement;
+  const { x, y, width, stamp } = placement;
   usePreventTouchScroll(ref);
 
   function beginDrag(e: PointerEvent<HTMLElement>, mode: DragState['mode']) {
@@ -54,14 +54,14 @@ export function PlacedSignature({ placement, pageRatio, selected, onSelect, onCh
     const dx = (e.clientX - d.startX) / d.pageWidth;
     const dy = (e.clientY - d.startY) / d.pageHeight;
     if (d.mode === 'move') {
-      const h = d.start.width * signature.aspect * pageRatio;
+      const h = d.start.width * stamp.aspect * pageRatio;
       onChange({
         x: clamp(d.start.x + dx, 0, 1 - d.start.width),
         y: clamp(d.start.y + dy, 0, 1 - h),
       });
     } else {
       const maxByWidth = 1 - d.start.x;
-      const maxByHeight = (1 - d.start.y) / (signature.aspect * pageRatio);
+      const maxByHeight = (1 - d.start.y) / (stamp.aspect * pageRatio);
       onChange({
         width: clamp(d.start.width + dx, MIN_WIDTH_PX / d.pageWidth, Math.min(maxByWidth, maxByHeight)),
       });
@@ -82,7 +82,7 @@ export function PlacedSignature({ placement, pageRatio, selected, onSelect, onCh
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
     >
-      <img src={signature.dataUrl} alt="Signature" draggable={false} />
+      <img src={stamp.dataUrl} alt={stamp.kind === 'date' ? 'Date' : 'Signature'} draggable={false} />
       {/* Move/up events from the captured handle bubble to the handlers above. */}
       <div className="handle" onPointerDown={e => beginDrag(e, 'resize')} />
       <button

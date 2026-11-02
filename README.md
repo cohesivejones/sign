@@ -1,7 +1,8 @@
 # Sign
 
-Open a PDF or image in the browser, draw a signature with the mouse, drag it
-onto the page and print. Documents stay in browser memory and are never uploaded.
+Open a PDF or image in the browser, draw a signature with the mouse or a
+finger, drag it and today's date (dd/mm/yyyy) onto the page, then print or save
+as PDF. Documents stay in browser memory and are never uploaded.
 
 ## Development
 

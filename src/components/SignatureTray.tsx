@@ -1,53 +1,53 @@
 import { useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
 import { usePreventTouchScroll } from '../lib/usePreventTouchScroll';
-import type { Signature } from '../types';
+import type { Stamp } from '../types';
 
 // Pointer movement (CSS px) before a press on a tray item counts as a drag
 // rather than a tap.
 const DRAG_THRESHOLD = 6;
 
 interface Props {
-  signatures: Signature[];
-  /** Called when a signature is dragged out of the tray and released at (clientX, clientY). */
-  onDrop: (signature: Signature, clientX: number, clientY: number) => void;
-  onTap: (signature: Signature) => void;
+  stamps: Stamp[];
+  /** Called when a stamp is dragged out of the tray and released at (clientX, clientY). */
+  onDrop: (stamp: Stamp, clientX: number, clientY: number) => void;
+  onTap: (stamp: Stamp) => void;
   onRemove: (id: string) => void;
 }
 
 interface Ghost {
-  signature: Signature;
+  stamp: Stamp;
   x: number;
   y: number;
 }
 
-export function SignatureTray({ signatures, onDrop, onTap, onRemove }: Props) {
+export function SignatureTray({ stamps, onDrop, onTap, onRemove }: Props) {
   const [ghost, setGhost] = useState<Ghost | null>(null);
 
   return (
     <aside className="tray">
-      <h2>Signatures</h2>
-      <p className="hint">Drag a signature onto the page, or tap it to add it to the page in view.</p>
+      <h2>Sign &amp; date</h2>
+      <p className="hint">Drag onto the page, or tap to add to the page in view.</p>
       <div className="sig-list">
-        {signatures.map(sig => (
+        {stamps.map(stamp => (
           <TrayItem
-            key={sig.id}
-            signature={sig}
-            onDragMove={(x, y) => setGhost({ signature: sig, x, y })}
+            key={stamp.id}
+            stamp={stamp}
+            onDragMove={(x, y) => setGhost({ stamp, x, y })}
             onDrop={(x, y) => {
               setGhost(null);
-              onDrop(sig, x, y);
+              onDrop(stamp, x, y);
             }}
             onCancel={() => setGhost(null)}
-            onTap={() => onTap(sig)}
-            onRemove={() => onRemove(sig.id)}
+            onTap={() => onTap(stamp)}
+            onRemove={stamp.kind === 'signature' ? () => onRemove(stamp.id) : undefined}
           />
         ))}
       </div>
       {ghost && (
         <img
           className="drag-ghost"
-          src={ghost.signature.dataUrl}
+          src={ghost.stamp.dataUrl}
           alt=""
           style={{ left: ghost.x, top: ghost.y }}
         />
@@ -57,15 +57,16 @@ export function SignatureTray({ signatures, onDrop, onTap, onRemove }: Props) {
 }
 
 interface ItemProps {
-  signature: Signature;
+  stamp: Stamp;
   onDragMove: (clientX: number, clientY: number) => void;
   onDrop: (clientX: number, clientY: number) => void;
   onCancel: () => void;
   onTap: () => void;
-  onRemove: () => void;
+  /** Omitted for stamps that can't be removed, like today's date. */
+  onRemove?: () => void;
 }
 
-function TrayItem({ signature, onDragMove, onDrop, onCancel, onTap, onRemove }: ItemProps) {
+function TrayItem({ stamp, onDragMove, onDrop, onCancel, onTap, onRemove }: ItemProps) {
   const ref = useRef<HTMLDivElement>(null);
   const press = useRef<{ startX: number; startY: number; dragging: boolean } | null>(null);
   usePreventTouchScroll(ref);
@@ -102,23 +103,25 @@ function TrayItem({ signature, onDragMove, onDrop, onCancel, onTap, onRemove }: 
   return (
     <div
       ref={ref}
-      className="sig-item"
+      className={`sig-item ${stamp.kind}`}
       title="Drag onto the document"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
     >
-      <img src={signature.dataUrl} alt="Signature" draggable={false} />
-      <button
-        type="button"
-        className="remove"
-        title="Remove from tray"
-        onPointerDown={e => e.stopPropagation()}
-        onClick={onRemove}
-      >
-        ×
-      </button>
+      <img src={stamp.dataUrl} alt={stamp.kind === 'date' ? "Today's date" : 'Signature'} draggable={false} />
+      {onRemove && (
+        <button
+          type="button"
+          className="remove"
+          title="Remove from tray"
+          onPointerDown={e => e.stopPropagation()}
+          onClick={onRemove}
+        >
+          ×
+        </button>
+      )}
     </div>
   );
 }
